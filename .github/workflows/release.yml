@@ -1,0 +1,34 @@
+name: Release
+
+env:
+  CARGO_TERM_COLOR: always
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-latest
+            arch_name: aarch64
+          - runner: macos-26-intel
+            arch_name: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build release binary
+        run: cargo build --release
+      - name: Strip binary
+        run: strip target/release/displayctl
+      - name: Prepare release binary
+        run: cp target/release/displayctl displayctl-${{ matrix.arch_name }}
+      - name: Upload binary to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.ref_name }} displayctl-${{ matrix.arch_name }} --clobber
