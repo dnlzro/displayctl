@@ -458,10 +458,16 @@ fn set_enabled(uuid_str: &str, enabled: bool) -> Result<(), String> {
 }
 
 fn print_usage(program: &str) {
+    eprintln!("{}", env!("CARGO_PKG_DESCRIPTION"));
+    eprintln!();
     eprintln!("Usage:");
     eprintln!("  {} list", program);
     eprintln!("  {} disable <uuid>", program);
     eprintln!("  {} enable <uuid>", program);
+}
+
+fn print_version() {
+    println!("{}", env!("CARGO_PKG_VERSION"));
 }
 
 fn main() {
@@ -476,6 +482,14 @@ fn main() {
     }
 
     match args[1].as_str() {
+        "--help" | "-h" => {
+            print_usage(&args[0]);
+            process::exit(0);
+        }
+        "--version" | "-V" => {
+            print_version();
+            process::exit(0);
+        }
         "list" => list_displays(),
         "disable" | "enable" => {
             if args.len() != 3 {
