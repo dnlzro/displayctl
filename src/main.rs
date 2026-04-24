@@ -458,12 +458,18 @@ fn set_enabled(uuid_str: &str, enabled: bool) -> Result<(), String> {
 }
 
 fn print_usage(program: &str) {
-    eprintln!("{}", env!("CARGO_PKG_DESCRIPTION"));
-    eprintln!();
-    eprintln!("Usage:");
-    eprintln!("  {} list", program);
-    eprintln!("  {} disable <uuid>", program);
-    eprintln!("  {} enable <uuid>", program);
+    println!("{}", env!("CARGO_PKG_DESCRIPTION"));
+    println!();
+    println!("Usage: {} <COMMAND>", program);
+    println!();
+    println!("Commands:");
+    println!("  list            List online displays");
+    println!("  disable <UUID>  Disable a display by UUID");
+    println!("  enable <UUID>   Enable a display by UUID");
+    println!();
+    println!("Options:");
+    println!("  -h, --help     Print help");
+    println!("  -V, --version  Print version");
 }
 
 fn print_version() {
@@ -482,7 +488,7 @@ fn main() {
     }
 
     match args[1].as_str() {
-        "--help" | "-h" => {
+        "help" | "--help" | "-h" => {
             print_usage(&args[0]);
             process::exit(0);
         }
