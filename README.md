@@ -1,6 +1,6 @@
 # displayctl
 
-List and toggle macOS displays from the command line.
+List and toggle macOS displays from the command-line.
 
 ## Installation
 

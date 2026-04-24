@@ -1,3 +1,7 @@
 [package]
 name = "displayctl"
 version = "0.1.0"
+edition = "2024"
+description = "List and toggle macOS displays from the command-line"
+license = "MIT"
+repository = "https://github.com/dnlzro/displayctl"

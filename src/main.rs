@@ -51,8 +51,16 @@ const KERN_SUCCESS: kern_return_t = 0;
 unsafe extern "C" {
     fn CGBeginDisplayConfiguration(config: *mut CGDisplayConfigRef) -> CGError;
     fn CGCompleteDisplayConfiguration(config: CGDisplayConfigRef, option: i32) -> CGError;
-    fn CGSConfigureDisplayEnabled(config: CGDisplayConfigRef, display: CGDirectDisplayID, enabled: bool) -> CGError;
-    fn CGGetOnlineDisplayList(maxDisplays: u32, displays: *mut CGDirectDisplayID, displayCount: *mut CGDisplayCount) -> CGError;
+    fn CGSConfigureDisplayEnabled(
+        config: CGDisplayConfigRef,
+        display: CGDirectDisplayID,
+        enabled: bool,
+    ) -> CGError;
+    fn CGGetOnlineDisplayList(
+        maxDisplays: u32,
+        displays: *mut CGDirectDisplayID,
+        displayCount: *mut CGDisplayCount,
+    ) -> CGError;
     fn CGDisplayIsActive(display: CGDirectDisplayID) -> bool;
     fn CGDisplayIsInMirrorSet(display: CGDirectDisplayID) -> bool;
     fn CGDisplayCreateUUIDFromDisplayID(display: CGDirectDisplayID) -> CFUUIDRef;
@@ -71,21 +79,39 @@ unsafe extern "C" {
 #[link(name = "CoreFoundation", kind = "framework")]
 unsafe extern "C" {
     fn CFUUIDCreateString(alloc: CFAllocatorRef, uuid: CFUUIDRef) -> CFStringRef;
-    fn CFStringGetCString(theString: CFStringRef, buffer: *mut c_char, bufferSize: usize, encoding: u32) -> c_uchar;
-    fn CFStringCreateWithCString(alloc: CFAllocatorRef, cStr: *const c_char, encoding: u32) -> CFStringRef;
+    fn CFStringGetCString(
+        theString: CFStringRef,
+        buffer: *mut c_char,
+        bufferSize: usize,
+        encoding: u32,
+    ) -> c_uchar;
+    fn CFStringCreateWithCString(
+        alloc: CFAllocatorRef,
+        cStr: *const c_char,
+        encoding: u32,
+    ) -> CFStringRef;
     fn CFUUIDCreateFromString(alloc: CFAllocatorRef, string: CFStringRef) -> CFUUIDRef;
     fn CFRelease(cf: *const c_void);
     fn CFDictionaryGetValue(theDict: CFDictionaryRef, key: CFStringRef) -> *const c_void;
     fn CFDictionaryGetCount(theDict: CFDictionaryRef) -> isize;
-    fn CFDictionaryGetKeysAndValues(theDict: CFDictionaryRef, keys: *mut *const c_void, values: *mut *const c_void);
+    fn CFDictionaryGetKeysAndValues(
+        theDict: CFDictionaryRef,
+        keys: *mut *const c_void,
+        values: *mut *const c_void,
+    );
 }
 
 #[link(name = "IOKit", kind = "framework")]
 unsafe extern "C" {
-    fn IOServiceGetMatchingServices(masterPort: u32, matching: CFMutableDictionaryRef, existing: *mut io_iterator_t) -> kern_return_t;
+    fn IOServiceGetMatchingServices(
+        masterPort: u32,
+        matching: CFMutableDictionaryRef,
+        existing: *mut io_iterator_t,
+    ) -> kern_return_t;
     fn IOServiceMatching(name: *const c_char) -> CFMutableDictionaryRef;
     fn IOIteratorNext(iterator: io_iterator_t) -> io_service_t;
-    fn IODisplayCreateInfoDictionary(service: io_service_t, options: u32) -> CFMutableDictionaryRef;
+    fn IODisplayCreateInfoDictionary(service: io_service_t, options: u32)
+    -> CFMutableDictionaryRef;
     fn IOObjectRelease(object: io_object_t) -> kern_return_t;
 }
 
@@ -101,18 +127,27 @@ fn cfstring_to_string(cf_string: CFStringRef) -> Option<String> {
     }
     unsafe {
         let mut buffer = [0 as c_char; 256];
-        let ok = CFStringGetCString(cf_string, buffer.as_mut_ptr(), buffer.len(), K_CF_STRING_ENCODING_UTF8);
+        let ok = CFStringGetCString(
+            cf_string,
+            buffer.as_mut_ptr(),
+            buffer.len(),
+            K_CF_STRING_ENCODING_UTF8,
+        );
         if ok == 0 {
             return None;
         }
-        CStr::from_ptr(buffer.as_ptr()).to_str().ok().map(String::from)
+        CStr::from_ptr(buffer.as_ptr())
+            .to_str()
+            .ok()
+            .map(String::from)
     }
 }
 
 fn cfstring_from_str(s: &str) -> Option<CFStringRef> {
     let c_string = CString::new(s).ok()?;
     unsafe {
-        let ptr = CFStringCreateWithCString(ptr::null(), c_string.as_ptr(), K_CF_STRING_ENCODING_UTF8);
+        let ptr =
+            CFStringCreateWithCString(ptr::null(), c_string.as_ptr(), K_CF_STRING_ENCODING_UTF8);
         if ptr.is_null() { None } else { Some(ptr) }
     }
 }
@@ -137,7 +172,8 @@ fn display_id_to_uuid(display_id: CGDirectDisplayID) -> Option<String> {
 fn uuid_to_display_id(uuid_str: &str) -> Option<CGDirectDisplayID> {
     let c_string = CString::new(uuid_str).ok()?;
     unsafe {
-        let cf_string = CFStringCreateWithCString(ptr::null(), c_string.as_ptr(), K_CF_STRING_ENCODING_UTF8);
+        let cf_string =
+            CFStringCreateWithCString(ptr::null(), c_string.as_ptr(), K_CF_STRING_ENCODING_UTF8);
         if cf_string.is_null() {
             return None;
         }
@@ -148,7 +184,11 @@ fn uuid_to_display_id(uuid_str: &str) -> Option<CGDirectDisplayID> {
         }
         let display_id = CGDisplayGetDisplayIDFromUUID(cf_uuid);
         cf_release(cf_uuid);
-        if display_id == 0 { None } else { Some(display_id) }
+        if display_id == 0 {
+            None
+        } else {
+            Some(display_id)
+        }
     }
 }
 
@@ -280,7 +320,8 @@ fn get_online_displays() -> Vec<CGDirectDisplayID> {
         }
 
         let mut displays = vec![0; count as usize];
-        if CGGetOnlineDisplayList(u32::MAX, displays.as_mut_ptr(), &mut count) != K_CG_ERROR_SUCCESS {
+        if CGGetOnlineDisplayList(u32::MAX, displays.as_mut_ptr(), &mut count) != K_CG_ERROR_SUCCESS
+        {
             return Vec::new();
         }
 
@@ -314,8 +355,16 @@ fn display_mode_info(display_id: CGDirectDisplayID) -> (String, String, String) 
     let rate = mode.refresh_rate();
 
     let mode_str = format!("{}x{}", w, h);
-    let native = if w != pw || h != ph { format!("{}x{}", pw, ph) } else { String::from("-") };
-    let refresh = if rate > 0.0 { format!("{:.2}Hz", rate) } else { String::from("-") };
+    let native = if w != pw || h != ph {
+        format!("{}x{}", pw, ph)
+    } else {
+        String::from("-")
+    };
+    let refresh = if rate > 0.0 {
+        format!("{:.2}Hz", rate)
+    } else {
+        String::from("-")
+    };
 
     (mode_str, native, refresh)
 }
@@ -333,7 +382,11 @@ fn list_displays() {
         let builtin = unsafe { CGDisplayIsBuiltin(display) };
 
         let name = get_display_name(display).unwrap_or_else(|| {
-            if builtin { String::from("Built-in Display") } else { String::from("External Display") }
+            if builtin {
+                String::from("Built-in Display")
+            } else {
+                String::from("External Display")
+            }
         });
 
         let (mode, native, refresh) = display_mode_info(display);
@@ -378,17 +431,26 @@ fn set_enabled(uuid_str: &str, enabled: bool) -> Result<(), String> {
         let mut config: CGDisplayConfigRef = ptr::null_mut();
         let err = CGBeginDisplayConfiguration(&mut config);
         if err != K_CG_ERROR_SUCCESS {
-            return Err(format!("Failed to begin display configuration (error: {})", err));
+            return Err(format!(
+                "Failed to begin display configuration (error: {})",
+                err
+            ));
         }
 
         let err = CGSConfigureDisplayEnabled(config, display_id, enabled);
         if err != K_CG_ERROR_SUCCESS {
-            return Err(format!("Failed to set display enabled={} (error: {})", enabled, err));
+            return Err(format!(
+                "Failed to set display enabled={} (error: {})",
+                enabled, err
+            ));
         }
 
         let err = CGCompleteDisplayConfiguration(config, K_CG_CONFIGURE_PERMANENTLY);
         if err != K_CG_ERROR_SUCCESS {
-            return Err(format!("Failed to complete display configuration (error: {})", err));
+            return Err(format!(
+                "Failed to complete display configuration (error: {})",
+                err
+            ));
         }
     }
 

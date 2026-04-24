@@ -1,15 +1,11 @@
 name: Release
-
 env:
   CARGO_TERM_COLOR: always
-
 on:
   release:
     types: [created]
-
 permissions:
   contents: write
-
 jobs:
   build:
     strategy:
